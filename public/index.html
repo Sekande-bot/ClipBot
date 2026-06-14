@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClipBot - Streaming Editor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 30px;
+    }
+
+    h1 {
+      color: #222;
+      margin-bottom: 20px;
+    }
+
+    .info {
+      background: #e8f1ff;
+      color: #0052cc;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #0052cc;
+      font-size: 13px;
+    }
+
+    .input-section {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      padding: 12px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #5568d3;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .editor-section {
+      display: none;
+    }
+
+    .editor-section.active {
+      display: block;
+    }
+
+    .video-container {
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    video {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .timeline-wrapper {
+      background: #f5f5f5;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 2px solid #667eea;
+    }
+
+    .timeline-label {
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .timeline {
+      position: relative;
+      height: 50px;
+      background: linear-gradient(180deg, #e8e8e8 0%, #d0d0d0 100%);
+      border-radius: 8px;
+      cursor: crosshair;
+      overflow: hidden;
+      margin-bottom: 12px;
+      border: 2px solid #667eea;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .timeline-selection {
+      position: absolute;
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      top: 0;
+      display: block;
+      z-index: 10;
+      border-radius: 4px;
+      box-shadow: 0 0 15px rgba(102, 126, 234, 0.4);
+      opacity: 0.7;
+    }
+
+    .timeline-time {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 20px;
+      white-space: nowrap;
+      backdrop-filter: blur(4px);
+    }
+
+    .timeline-hint {
+      font-size: 12px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .time-display {
+      background: #f5f5f5;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #222;
+      border: 2px solid #e0e0e0;
+      margin-bottom: 15px;
+    }
+
+    .time-display strong {
+      color: #667eea;
+      font-weight: 700;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .quality-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .quality-label {
+      font-weight: 600;
+      color: #222;
+      font-size: 13px;
+    }
+
+    .quality-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .quality-btn {
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      text-align: center;
+      color: #666;
+    }
+
+    .quality-btn:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    .quality-btn.selected {
+      border-color: #667eea;
+      background: #667eea;
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .download-section {
+      display: flex;
+      gap: 10px;
+    }
+
+    .download-btn {
+      flex: 1;
+      padding: 14px 20px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .download-btn:hover {
+      background: #218838;
+    }
+
+    .download-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 15px;
+      display: none;
+      font-weight: 500;
+    }
+
+    .status.loading {
+      background: #e3f2fd;
+      color: #1976d2;
+      display: block;
+    }
+
+    .status.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      display: block;
+    }
+
+    .status.error {
+      background: #ffebee;
+      color: #c62828;
+      display: block;
+    }
+
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+      border-left: 4px solid #c62828;
+    }
+
+    .error.show {
+      display: block;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: currentColor;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 ClipBot - Streaming Editor</h1>
+    
+    <div class="info">
+      ⚡ Streaming mode: Videos stream on-demand, only clips are saved. Zero data wasted!
+    </div>
+
+    <div class="input-section">
+      <input 
+        type="url" 
+        id="videoUrl" 
+        placeholder="Paste video URL here..." 
+        autocomplete="off"
+      >
+      <button id="loadBtn" onclick="loadVideo()">Load Video</button>
+    </div>
+
+    <div id="error" class="error"></div>
+
+    <div id="editorSection" class="editor-section">
+      <div class="video-container">
+        <video id="videoPlayer" controls></video>
+      </div>
+
+      <div class="timeline-wrapper">
+        <div class="timeline-label">📍 DRAG TO SELECT YOUR CLIP</div>
+        <div id="timeline" class="timeline">
+          <div id="selection" class="timeline-selection">
+            <span class="timeline-time" id="selectionTime">0:00 - 0:30</span>
+          </div>
+        </div>
+        <div class="timeline-hint">
+          ← Click and drag left/right to adjust start and end points →
+        </div>
+      </div>
+
+      <div class="time-display">
+        ⏱️ Start: <strong id="startDisplay">0:00</strong> | End: <strong id="endDisplay">0:30</strong>
+      </div>
+
+      <div class="controls">
+        <div class="quality-section">
+          <div class="quality-label">✨ QUALITY</div>
+          <div class="quality-selector">
+            <button class="quality-btn selected" onclick="selectQuality(this, 'high')">HIGH</button>
+            <button class="quality-btn" onclick="selectQuality(this, 'medium')">MEDIUM</button>
+            <button class="quality-btn" onclick="selectQuality(this, 'low')">LOW</button>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: flex-end;">
+          <button class="download-btn" id="downloadBtn" onclick="downloadClip()">
+            ⬇️ DOWNLOAD CLIP
+          </button>
+        </div>
+      </div>
+
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    let videoUrl = null;
+    let duration = 0;
+    let selectedQuality = 'high';
+    let startTime = 0;
+    let endTime = 30;
+    let isDragging = false;
+
+    const videoUrlInput = document.getElementById('videoUrl');
+    const loadBtn = document.getElementById('loadBtn');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const timeline = document.getElementById('timeline');
+    const selection = document.getElementById('selection');
+    const editorSection = document.getElementById('editorSection');
+    const errorDiv = document.getElementById('error');
+    const statusDiv = document.getElementById('status');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+      document.getElementById('startDisplay').textContent = formatTime(startTime);
+      document.getElementById('endDisplay').textContent = formatTime(endTime);
+      document.getElementById('selectionTime').textContent = `${formatTime(startTime)} - ${formatTime(endTime)}`;
+
+      const startPercent = (startTime / duration) * 100;
+      const endPercent = (endTime / duration) * 100;
+      
+      selection.style.left = startPercent + '%';
+      selection.style.width = (endPercent - startPercent) + '%';
+    }
+
+    function selectQuality(btn, quality) {
+      selectedQuality = quality;
+      document.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    async function loadVideo() {
+      const url = videoUrlInput.value.trim();
+      if (!url) {
+        showError('Enter a video URL');
+        return;
+      }
+
+      showStatus('📥 Getting video info...', 'loading');
+      loadBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/load-video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error);
+        }
+
+        const data = await response.json();
+        videoUrl = data.url;
+        duration = data.duration;
+
+        // Stream video to player
+        showStatus('🎬 Streaming video...', 'loading');
+        videoPlayer.src = `/api/stream-video?url=${encodeURIComponent(videoUrl)}`;
+        
+        endTime = Math.min(30, duration);
+        updateDisplay();
+
+        editorSection.classList.add('active');
+        errorDiv.classList.remove('show');
+        showStatus('✅ Ready! Drag timeline to select clip', 'success');
+
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        loadBtn.disabled = false;
+      }
+    }
+
+    timeline.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      updateSelection(e);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      updateSelection(e);
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    function updateSelection(e) {
+      const rect = timeline.getBoundingClientRect();
+      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+      const percent = x / rect.width;
+      const time = percent * duration;
+
+      if (e.buttons === 1) {
+        if (time < startTime + 5) {
+          startTime = Math.max(0, time);
+        } else {
+          endTime = Math.min(duration, time);
+        }
+      } else {
+        startTime = Math.max(0, time - 15);
+        endTime = Math.min(duration, time + 15);
+      }
+
+      updateDisplay();
+    }
+
+    async function downloadClip() {
+      if (!videoUrl) return;
+
+      downloadBtn.disabled = true;
+      showStatus(`📦 Creating ${selectedQuality} quality clip (streaming)...`, 'loading');
+
+      try {
+        const response = await fetch('/api/create-clip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: videoUrl,
+            startTime: Math.floor(startTime),
+            endTime: Math.floor(endTime),
+            quality: selectedQuality
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error);
+        }
+
+        const data = await response.json();
+        showStatus(`✅ Done! (${data.fileSize}MB) Downloading...`, 'success');
+
+        const link = document.createElement('a');
+        link.href = data.downloadUrl;
+        link.download = `clip_${selectedQuality}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+      } catch (error) {
+        showError('Error creating clip: ' + error.message);
+      } finally {
+        downloadBtn.disabled = false;
+      }
+    }
+
+    function showError(msg) {
+      errorDiv.textContent = '❌ ' + msg;
+      errorDiv.classList.add('show');
+      statusDiv.innerHTML = '';
+    }
+
+    function showStatus(msg, type) {
+      statusDiv.textContent = msg;
+      statusDiv.className = 'status ' + type;
+    }
+
+    videoUrlInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loadVideo();
+    });
+  </script>
+</body>
+</html>

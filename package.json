@@ -1,0 +1,24 @@
+{
+  "name": "clipbot",
+  "version": "1.0.0",
+  "description": "AI-powered video clipping tool - paste link, get viral clips",
+  "main": "clipbot-backend.js",
+  "scripts": {
+    "start": "node clipbot-backend.js",
+    "dev": "node clipbot-backend.js"
+  },
+  "keywords": [
+    "video",
+    "clips",
+    "ai",
+    "youtube",
+    "tiktok"
+  ],
+  "author": "sekande",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "@google/generative-ai": "^0.24.1",
+    "express": "^4.18.2"
+  }
+}
